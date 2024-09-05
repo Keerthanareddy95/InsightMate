@@ -1,0 +1,1 @@
+InsightMate - A chatbot built using LangChain and Streamlit that can interactively perform exploratory data analysis (EDA) and provide data-driven insights based on user queries.
