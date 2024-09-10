@@ -4,6 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 import os
 from dotenv import load_dotenv
 
@@ -12,18 +14,17 @@ load_dotenv()
 
 # Set environment variables
 os.environ['GOOGLE_API_KEY'] = os.getenv("GOOGLE_API_KEY")
+os.environ["LANGSMITH_TRACING"] = "true"
+os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
 
 # Set a theme for plots using Seaborn
 sns.set_theme(style="whitegrid", palette="pastel")
 
 # Initialize the LangChain model
-chat_llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-pro",
-    temperature=0,
-    max_tokens=150,  # Set a reasonable limit for response length
-    timeout=None,
-    max_retries=2,
-)
+chat_llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
+
+# Define a prompt template for the model
+prompt_template = ChatPromptTemplate.from_template("You are an assistant knowledgeable in data analysis. Answer the following question based on the dataset: {question}")
 
 # Set the title of the Streamlit app
 st.title("Data Analysis and Visualization with LangChain")
@@ -33,16 +34,8 @@ uploaded_file = st.file_uploader("Upload your CSV dataset", type=["csv"])
 
 if uploaded_file is not None:
     # Step 2: Load the dataset using Pandas
-    try:
-        df = pd.read_csv(uploaded_file)
-    except Exception as e:
-        st.error(f"Error loading file: {e}")
-        st.stop()
+    df = pd.read_csv(uploaded_file)
 
-    # Data Cleaning: Handle missing values and incorrect data types
-    df = df.dropna(how='all')  # Drop rows where all elements are NaN
-    df = df.fillna(method='ffill')  # Forward fill to handle missing values
-    
     # Display a preview of the dataset
     st.write("### Dataset Preview")
     st.dataframe(df.head())  # Show the first 5 rows
@@ -52,7 +45,7 @@ if uploaded_file is not None:
     st.write(f"Number of rows: {df.shape[0]}")
     st.write(f"Number of columns: {df.shape[1]}")
     st.write("### Dataset Summary")
-    st.write(df.describe(include='all'))  # Show statistical summary
+    st.write(df.describe())  # Show statistical summary
 
     # Identify numerical and categorical columns
     numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
@@ -97,34 +90,40 @@ if uploaded_file is not None:
         plt.title('Correlation Heatmap')
         st.pyplot(plt)
 
-    # 3.4 Missing values heatmap
-    if df.isnull().sum().sum() > 0:
-        st.write("#### Missing Values Heatmap")
-        plt.figure(figsize=(8, 5))
-        sns.heatmap(df.isnull(), cbar=False, cmap="viridis")
-        plt.title('Missing Values in the Dataset')
-        st.pyplot(plt)
+    # Step 4: Query-based Dataset Filtering with Dropdown
+    st.write("### Filter the Dataset by Unique Values in a Column")
 
-    # 3.5 Pie charts for categorical columns
-    if len(categorical_columns) > 0:
-        st.write("#### Pie Charts for Categorical Columns")
-        for i in range(0, len(categorical_columns), 2):
-            cols = st.columns(2)
-            for idx, column in enumerate(categorical_columns[i:i + 2]):
-                with cols[idx]:
-                    pie_data = df[column].value_counts().nlargest(5)  # Top 5 categories
-                    plt.figure(figsize=(6, 6))
-                    plt.pie(pie_data, labels=pie_data.index, autopct='%1.1f%%', colors=sns.color_palette("Set3"))
-                    plt.title(f'Pie Chart of {column}')
-                    st.pyplot(plt)
+    # Dropdown to select a column for filtering
+    selected_filter_column = st.selectbox("Select a column to filter by unique values", df.columns)
 
-    # Step 4: Custom visualizations
+    # Display unique values for the selected column
+    unique_values = df[selected_filter_column].unique()
+
+    # Dropdown to select one of the unique values for filtering
+    selected_value = st.selectbox(f"Select a unique value from the '{selected_filter_column}' column", unique_values)
+
+    # Filter the dataset based on the selected value
+    filtered_df = df[df[selected_filter_column] == selected_value]
+    st.write(f"### Filtered Dataset where `{selected_filter_column} == {selected_value}`")
+    st.dataframe(filtered_df)
+
+    # Step 5: Column selection for dataset exploration
+    selected_columns = st.multiselect("Select columns for detailed exploration", df.columns)
+
+    # Add an input to allow the user to select how many rows to display
+    num_rows = st.slider("Select number of rows to display", min_value=5, max_value=100, value=10, step=5)
+
+    if selected_columns:
+        st.write(f"### Detailed view of selected columns (showing top {num_rows} rows)")
+        st.dataframe(df[selected_columns].head(num_rows))  # Show the specified number of rows
+
+
+    # Step 6: Custom visualizations
     st.write("### Generate Custom Visualizations")
 
-    # Step 5: Let users choose which plot they want to generate
     plot_type = st.selectbox("Select Plot Type", ["Histogram", "Bar Plot", "Line Plot", "Scatter Plot", "Pie Chart", "Box Plot", "Correlation Heatmap", "Violin Plot", "Pair Plot"])
 
-    # Step 6: Let the user select columns for visualization (depending on the plot type)
+    # Let the user select columns for visualization (depending on the plot type)
     if plot_type == "Histogram":
         selected_column = st.selectbox("Select column for histogram", numeric_columns)
         if st.button("Generate Histogram"):
@@ -193,27 +192,7 @@ if uploaded_file is not None:
             st.pyplot(plt)
 
     elif plot_type == "Pair Plot":
-        if len(numeric_columns) > 1:
-            selected_columns = st.multiselect("Select columns for pair plot", numeric_columns, default=numeric_columns[:2])
-            if st.button("Generate Pair Plot"):
-                plt.figure(figsize=(8, 6))
-                sns.pairplot(df[selected_columns], diag_kind='kde', palette="husl")
-                plt.title('Pair Plot of Selected Columns')
-                st.pyplot(plt)
-
-    # Step 7: Chatbot Interaction with LangChain
-    st.write("### Chatbot Interaction with LangChain")
-
-    # Input for user question
-    user_question = st.text_input("Ask a question about the dataset")
-
-    if user_question:
-        try:
-            # Format the messages for the model
-            messages = [{"role": "user", "content": user_question}]
-            # Generate response using the chatbot model
-            response = chat_llm.invoke(messages)
-            st.write("### Chatbot Response")
-            st.write(response['choices'][0]['message']['content'])
-        except Exception as e:
-            st.error(f"Error generating response: {e}")
+        selected_columns = st.multiselect("Select columns for pair plot", df.columns)
+        if len(selected_columns) >= 2:
+            sns.pairplot(df[selected_columns], palette="husl")
+            st.pyplot(plt)
