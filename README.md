@@ -26,9 +26,9 @@ cd InsightMate
 Create a `.env` file in the root of the project and add your API keys for Google Gemini and Langsmith:
 
 ```makefile
-GOOGLE_API_KEY=your_google_api_key_here
-LANGCHAIN_API_KEY=your_langchain_api_key_here
-LANGCHAIN_PROJECT=your_langchain_project_name
+GOOGLE_API_KEY="your_google_api_key"
+LANGCHAIN_API_KEY="your_langchain_api_key"
+LANGCHAIN_PROJECT="your_langchain_project_name"
 ```
 ## 3. Install required libraries
 Install the necessary dependencies using pip:
