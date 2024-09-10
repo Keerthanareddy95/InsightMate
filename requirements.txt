@@ -2,4 +2,8 @@ numpy
 pandas
 matplotlib
 seaborn
+streamlit
 langchain-community
+langchain-google-genai
+langchain-core
+python-dotenv
