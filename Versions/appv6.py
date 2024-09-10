@@ -1,4 +1,3 @@
-# Import necessary libraries
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -9,64 +8,50 @@ from langchain_core.output_parsers import StrOutputParser
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Set environment variables
 os.environ['GOOGLE_API_KEY'] = os.getenv("GOOGLE_API_KEY")
 os.environ["LANGSMITH_TRACING"] = "true"
 os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
 
-# Set a theme for plots using Seaborn
 sns.set_theme(style="whitegrid", palette="pastel")
 
-# Initialize the LangChain model
 chat_llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
 
-# Define a prompt template for the model
 prompt_template = ChatPromptTemplate.from_template("You are an assistant knowledgeable in data analysis. Answer the following question based on the dataset: {question}")
 
-# Set the title of the Streamlit app
-st.title("Data Analysis and Visualization with LangChain")
+st.title("Insightmate")
 
-# Step 1: File uploader for user to upload CSV files
 uploaded_file = st.file_uploader("Upload your CSV dataset", type=["csv"])
 
 if uploaded_file is not None:
-    # Step 2: Load the dataset using Pandas
     df = pd.read_csv(uploaded_file)
 
-    # Display a preview of the dataset
     st.write("### Dataset Preview")
-    st.dataframe(df.head())  # Show the first 5 rows
+    st.dataframe(df.head())
 
-    # Display basic dataset information
     st.write("### Basic Information about the Dataset")
     st.write(f"Number of rows: {df.shape[0]}")
     st.write(f"Number of columns: {df.shape[1]}")
     st.write("### Dataset Summary")
-    st.write(df.describe())  # Show statistical summary
+    st.write(df.describe())
 
-    # Identify numerical and categorical columns
     numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
     categorical_columns = df.select_dtypes(include=['object']).columns
 
-    # Step 3: Auto-Generated Dashboard with Key Visualizations
     st.write("### Auto-Generated Dashboard")
 
-    # 3.1 Distribution plots for numerical columns
     if len(numeric_columns) > 0:
         st.write("#### Distribution of Numerical Columns")
-        for i in range(0, len(numeric_columns), 2):  # Show 2 columns in one row
-            cols = st.columns(2)  # Create 2 columns side-by-side
+        for i in range(0, len(numeric_columns), 2):
+            cols = st.columns(2)
             for idx, column in enumerate(numeric_columns[i:i + 2]):
-                with cols[idx]:  # Place the plots in separate columns
-                    plt.figure(figsize=(6, 4))  # Make the plot smaller
+                with cols[idx]:
+                    plt.figure(figsize=(6, 4))
                     sns.histplot(df[column], kde=True, color='lightblue', bins=30)
                     plt.title(f'Distribution of {column}')
                     st.pyplot(plt)
 
-    # 3.2 Bar plots for categorical columns (with top few categories)
     if len(categorical_columns) > 0:
         st.write("#### Distribution of Categorical Columns")
         for i in range(0, len(categorical_columns), 2):
@@ -81,7 +66,6 @@ if uploaded_file is not None:
                     plt.xticks(rotation=45)
                     st.pyplot(plt)
 
-    # 3.3 Correlation Heatmap for numerical columns
     if len(numeric_columns) > 1:
         st.write("#### Correlation Heatmap of Numerical Columns")
         plt.figure(figsize=(8, 5))
@@ -90,40 +74,26 @@ if uploaded_file is not None:
         plt.title('Correlation Heatmap')
         st.pyplot(plt)
 
-    # Step 4: Query-based Dataset Filtering with Dropdown
     st.write("### Filter the Dataset by Unique Values in a Column")
 
-    # Dropdown to select a column for filtering
     selected_filter_column = st.selectbox("Select a column to filter by unique values", df.columns)
-
-    # Display unique values for the selected column
     unique_values = df[selected_filter_column].unique()
-
-    # Dropdown to select one of the unique values for filtering
     selected_value = st.selectbox(f"Select a unique value from the '{selected_filter_column}' column", unique_values)
-
-    # Filter the dataset based on the selected value
     filtered_df = df[df[selected_filter_column] == selected_value]
     st.write(f"### Filtered Dataset where `{selected_filter_column} == {selected_value}`")
     st.dataframe(filtered_df)
 
-    # Step 5: Column selection for dataset exploration
     selected_columns = st.multiselect("Select columns for detailed exploration", df.columns)
-
-    # Add an input to allow the user to select how many rows to display
     num_rows = st.slider("Select number of rows to display", min_value=5, max_value=100, value=10, step=5)
 
     if selected_columns:
         st.write(f"### Detailed view of selected columns (showing top {num_rows} rows)")
-        st.dataframe(df[selected_columns].head(num_rows))  # Show the specified number of rows
+        st.dataframe(df[selected_columns].head(num_rows))
 
-
-    # Step 6: Custom visualizations
     st.write("### Generate Custom Visualizations")
 
     plot_type = st.selectbox("Select Plot Type", ["Histogram", "Bar Plot", "Line Plot", "Scatter Plot", "Pie Chart", "Box Plot", "Correlation Heatmap", "Violin Plot", "Pair Plot"])
 
-    # Let the user select columns for visualization (depending on the plot type)
     if plot_type == "Histogram":
         selected_column = st.selectbox("Select column for histogram", numeric_columns)
         if st.button("Generate Histogram"):
