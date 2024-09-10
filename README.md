@@ -19,5 +19,5 @@ The goal of this project is to create a user-friendly application that automates
 Start by cloning this repository to your local machine:
 
 ```bash
-git clone https://github.com/your-username/insightmate.git
-cd insightmate
+git clone https://github.com/Keerthanareddy95/InsightMate.git
+cd InsightMate
