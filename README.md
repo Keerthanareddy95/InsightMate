@@ -2,6 +2,7 @@
 
 **InsightMate** - an intuitive data analysis tool that helps you explore, visualize, and gain insights from your CSV datasets. With interactive visualizations and the integration of **Google's Gemini**, InsightMate provides instant answers to your dataset-related questions. This tool is designed to make data exploration easy and insightful! 🚀
 
+I've written a more detailed blog describing the development process of InsightMate on Analytics Vidhya. check out the blog here - https://www.analyticsvidhya.com/blog/2024/09/automate-data-insights-with-insightmate-using-gemini-langsmith/
 ## 🎯 Goal
 The goal of this project is to create a user-friendly application that automates the process of dataset exploration and provides on-demand insights using AI, all through an interactive and visually rich dashboard.
 
